@@ -1,16 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="09cd723c-9f2b-4842-ae6b-f823384bb123" name="Changes" comment="" />
+    <list default="true" id="09cd723c-9f2b-4842-ae6b-f823384bb123" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/EventsJavaProject/.idea/dataSources.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/EventsJavaProject/src/MyFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/EventsJavaProject/src/MyFrame.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 2
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "TedyIsBack"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/TedyIsBack/Java_OOP.git",
+    "accountId": "d296bcbe-a5fe-4a38-aab9-1db5260d3b03"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="2vPOu3UmRx2cbQ0SYfy5XV2vQRh" />
   <component name="ProjectViewState">
     <option name="flattenModules" value="true" />
@@ -20,8 +38,11 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/User/IdeaProjects/OOP_DB_JavaProject/EventsJavaProject",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -42,6 +63,7 @@
       <option name="presentableId" value="Default" />
       <updated>1744043468789</updated>
       <workItem from="1744043471841" duration="67000" />
+      <workItem from="1744228227952" duration="244000" />
     </task>
     <servers />
   </component>
