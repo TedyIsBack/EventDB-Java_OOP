@@ -8,9 +8,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 public class MyFrame extends JFrame {
 
+    //important: in event table location will be city and organizer will be only fullName. In
     //region Properties
     Connection conn = null;
     PreparedStatement state = null;
@@ -200,7 +202,6 @@ public class MyFrame extends JFrame {
         refreshTable("location", locationTable);
         //endregion
 
-
         //region Events Tab
         mainTabbedPane.addTab("Събития", eventsPanel);
 
@@ -215,9 +216,9 @@ public class MyFrame extends JFrame {
         eventUpPanel.add(eventNameL);
         eventUpPanel.add(eventNameTF);
         eventUpPanel.add(eventLocationL);
-       // eventUpPanel.add(eventLocationTF);
+        eventUpPanel.add(eventLocationCombo);
         eventUpPanel.add(eventOrganizerL);
-        //eventUpPanel.add(eventOrganizerTF);
+        eventUpPanel.add(eventOrgCombo);
         eventUpPanel.add(eventDurationL);
         eventUpPanel.add(eventDurationTF);
         eventUpPanel.add(eventDateL);
@@ -228,8 +229,7 @@ public class MyFrame extends JFrame {
         eventUpPanel.add(eventDescriptionTF);
 
         eventNameTF.setPreferredSize(new Dimension(200, 30));
-        //eventLocationTF.setPreferredSize(new Dimension(200, 30));
-       // eventOrganizerTF.setPreferredSize(new Dimension(200, 30));
+
         eventDurationTF.setPreferredSize(new Dimension(200, 30));
         eventDateTF.setPreferredSize(new Dimension(200, 30));
         ticketPriceTF.setPreferredSize(new Dimension(200, 30));
@@ -245,20 +245,25 @@ public class MyFrame extends JFrame {
         eventMidPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 10));
 
         addEventBTN.addActionListener(new AddEventAction());
-        //deleteEventBTN.addActionListener(new DeleteEventAction());
-        //updateEventBTN.addActionListener(new UpdateEventAction());
-        //searchEventBTN.addActionListener(new SearchEventAction());
-        //refreshEventBTN.addActionListener(new RefreshEventAction());
+        deleteEventBTN.addActionListener(new DeleteEventAction());
+        updateEventBTN.addActionListener(new UpdateEventAction());
+        searchEventBTN.addActionListener(new SearchEventAction());
+        refreshEventBTN.addActionListener(new RefreshEventAction());
 
         //downPanel ----------------------
         eventScrollTable.setPreferredSize(new Dimension(800, 150));
         eventDownPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 50, 5));
         eventDownPanel.add(eventScrollTable, BorderLayout.CENTER);
 
-        //eventTable.addMouseListener(new MouseEventAction());
-        refreshTable("event", eventTable);
+        eventTable.addMouseListener(new MouseEventAction());
+
         //endregion
 
+        loadLocationCombo();
+        loadOrganizerCombo();
+        refreshEventTable();
+        refreshTable("organizer", orgTable);
+        refreshTable("location", locationTable);
         this.add(mainTabbedPane);
         this.setVisible(true);
     }
@@ -290,6 +295,35 @@ public class MyFrame extends JFrame {
         }
     }
 
+    public void refreshEventTable() {
+        conn = DBConnection.getConnection();
+        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.CITY, L.LOCATION_NAME , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL,E.ORGANIZER_ID, E.DURATION,E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
+                "FROM EVENT E, LOCATION L, ORGANIZER O " +
+                "WHERE E.LOCATION_ID = L.LOCATION_ID " +
+                "AND E.ORGANIZER_ID = O.ORGANIZER_ID";
+        try {
+            state = conn.prepareStatement(sql);
+            resultSet = state.executeQuery();
+            eventTable.setModel(new MyTModel(resultSet));
+
+            eventTable.getColumnModel().getColumn(3).setMinWidth(0);
+            eventTable.getColumnModel().getColumn(3).setMaxWidth(0);
+            eventTable.getColumnModel().getColumn(3).setWidth(0);
+            eventTable.getColumnModel().getColumn(4).setMinWidth(0);
+            eventTable.getColumnModel().getColumn(4).setMaxWidth(0);
+            eventTable.getColumnModel().getColumn(4).setWidth(0);
+
+            eventTable.getColumnModel().getColumn(6).setMinWidth(0);
+            eventTable.getColumnModel().getColumn(6).setMaxWidth(0);
+            eventTable.getColumnModel().getColumn(6).setWidth(0);
+            eventTable.getColumnModel().getColumn(7).setMinWidth(0);
+            eventTable.getColumnModel().getColumn(7).setMaxWidth(0);
+            eventTable.getColumnModel().getColumn(7).setWidth(0);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void clearOrgForm() {
         organizerNameTF.setText("");
         emailTF.setText("");
@@ -301,8 +335,59 @@ public class MyFrame extends JFrame {
     }
 
     public void clearEventsForm() {
-        locationNameTF.setText("");
-        cityTF.setText("");
+        eventNameTF.setText("");
+        eventDateTF.setText("");
+        ticketPriceTF.setText("");
+        eventDescriptionTF.setText("");
+        eventDurationTF.setText("");
+    }
+
+    public void loadLocationCombo() {
+        eventLocationCombo.removeAllItems();
+        location_id = -1;
+        conn = DBConnection.getConnection();
+        String sql = "select location_id,location_name,city from location";
+        String item = "";
+        try {
+            state = conn.prepareStatement(sql);
+            resultSet = state.executeQuery();
+            if (resultSet.next()) {
+                location_id = Integer.parseInt(resultSet.getObject(1).toString());
+                do {
+                    item = resultSet.getObject(1).toString() + ". " +
+                            resultSet.getObject(2).toString() + ", " +
+                            resultSet.getObject(3).toString();
+                    eventLocationCombo.addItem(item);
+                }
+                while (resultSet.next());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void loadOrganizerCombo() {
+        organizer_id = -1;
+        eventOrgCombo.removeAllItems();
+        conn = DBConnection.getConnection();
+        String item = "";
+        String sql = "select organizer_id,organizer_name,contact_email from organizer";
+        try {
+            state = conn.prepareStatement(sql);
+            resultSet = state.executeQuery();
+            if (resultSet.next()) {
+                organizer_id = Integer.parseInt(resultSet.getObject(1).toString());
+                do {
+                    item = resultSet.getObject(1).toString() + ". " +
+                            resultSet.getObject(2).toString() + " (" +
+                            resultSet.getObject(3).toString() + ")";
+                    eventOrgCombo.addItem(item);
+                }
+                while (resultSet.next());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     //region Organizer Actions
@@ -319,6 +404,7 @@ public class MyFrame extends JFrame {
                 state.setString(2, emailTF.getText());
                 state.execute();
                 refreshTable("organizer", orgTable);
+                loadOrganizerCombo();
                 clearOrgForm();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
@@ -337,6 +423,7 @@ public class MyFrame extends JFrame {
                 state.setInt(1, organizer_id);
                 state.execute();
                 refreshTable("organizer", orgTable);
+                loadOrganizerCombo();
                 clearOrgForm();
                 organizer_id = -1;
             } catch (SQLException ex) {
@@ -359,7 +446,7 @@ public class MyFrame extends JFrame {
                     state.setInt(3, organizer_id);
                     state.execute();
                     refreshTable("organizer", orgTable);
-
+                    loadOrganizerCombo();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -443,6 +530,7 @@ public class MyFrame extends JFrame {
                 state.setString(2, cityTF.getText());
                 state.execute();
                 refreshTable("location", locationTable);
+                loadLocationCombo();
                 clearLocForm();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
@@ -461,6 +549,7 @@ public class MyFrame extends JFrame {
                 state.execute();
                 refreshTable("location", locationTable);
                 clearLocForm();
+                loadLocationCombo();
                 location_id = -1;
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
@@ -483,7 +572,7 @@ public class MyFrame extends JFrame {
                     state.setInt(3, location_id);
                     state.execute();
                     refreshTable("location", locationTable);
-
+                    loadLocationCombo();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -557,25 +646,174 @@ public class MyFrame extends JFrame {
 
     //endregion
 
-    //region Even Actions
+    //region Event Actions
 
     class AddEventAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             conn = DBConnection.getConnection();
-            String sql = "insert into event (event_name,location_id,organizer_id,duration,event_date,ticket_price,description) values (?,?,?,?,?,?,?)";
+            String sql = "insert into event (event_name,location_id,organizer_id,duration, event_date,ticket_price,description) values (?,?,?,?,?,?,?)";
             try {
+
+                String selectedLoc = eventLocationCombo.getSelectedItem().toString();
+                location_id = Integer.parseInt(selectedLoc.split("\\.")[0]);
+
+                String selectedOrg = eventOrgCombo.getSelectedItem().toString();
+                organizer_id = Integer.parseInt(selectedOrg.split("\\.")[0]);
+
                 state = conn.prepareStatement(sql);
                 state.setString(1, eventNameTF.getText());
                 state.setInt(2, location_id);
                 state.setInt(3, organizer_id);
-                state.setString(4, eventDurationTF.getText());
+                state.setInt(4, Integer.parseInt(eventDurationTF.getText()));
                 state.setString(5, eventDateTF.getText());
                 state.setString(6, ticketPriceTF.getText());
                 state.setString(7, eventDescriptionTF.getText());
+                state.execute();
+                refreshEventTable();
+                clearEventsForm();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
+
+        }
+    }
+
+    class DeleteEventAction implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            conn = DBConnection.getConnection();
+            String sql = "delete from event where event_id=?";
+            try {
+                state = conn.prepareStatement(sql);
+                state.setInt(1, event_id);
+                state.execute();
+                refreshEventTable();
+                clearEventsForm();
+                event_id = -1;
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class UpdateEventAction implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (location_id > 0) {
+
+                // взимаме ID-тата от избраните ComboBox стойности
+                String selectedLoc = eventLocationCombo.getSelectedItem().toString();
+                location_id = Integer.parseInt(selectedLoc.split("\\.")[0]);
+
+                String selectedOrg = eventOrgCombo.getSelectedItem().toString();
+                organizer_id = Integer.parseInt(selectedOrg.split("\\.")[0]);
+
+
+                String sql = "update event set event_name=?, location_id=?, organizer_id=?, duration=?,event_date=?,ticket_price=?,description=? where event_id=?";
+
+                try {
+                    state = conn.prepareStatement(sql);
+
+                    state.setString(1, eventNameTF.getText());
+                    state.setInt(2, location_id);
+                    state.setInt(3, organizer_id);
+                    state.setInt(4, Integer.parseInt(eventDurationTF.getText()));
+                    state.setString(5, eventDateTF.getText());
+                    state.setString(6, ticketPriceTF.getText());
+                    state.setString(7, eventDescriptionTF.getText());
+                    state.setInt(8, event_id);
+
+
+                    state.execute();
+                    refreshEventTable();
+                } catch (SQLException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+
+                eventNameTF.setText("");
+                eventDurationTF.setText("");
+                eventDateTF.setText("");
+                ticketPriceTF.setText("");
+                eventDescriptionTF.setText("");
+            }
+        }
+    }
+
+    class RefreshEventAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            refreshEventTable();
+            clearEventsForm();
+        }
+    }
+
+    class SearchEventAction implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            conn = DBConnection.getConnection();
+            String sql = "SELECT e.event_id, e.event_name, l.location_name, o.organizer_name, e.duration, e.event_date, e.ticket_price, e.description " +
+                    "FROM event e " +
+                    "JOIN location l ON e.location_id = l.location_id " +
+                    "JOIN organizer o ON e.organizer_id = o.organizer_id " +
+                    "WHERE UPPER(e.event_name) LIKE UPPER(?)";
+            try {
+                state = conn.prepareStatement(sql);
+                state.setString(1, "%" + eventNameTF.getText() + "%");
+                resultSet = state.executeQuery();
+                eventTable.setModel(new MyTModel(resultSet));
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class MouseEventAction implements MouseListener {
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            int row = eventTable.getSelectedRow();
+            event_id = Integer.parseInt(eventTable.getValueAt(row, 0).toString());
+
+            eventNameTF.setText(eventTable.getValueAt(row, 1).toString());
+
+            String city = eventTable.getValueAt(row, 2).toString();
+            String locationName = eventTable.getValueAt(row, 3).toString();
+            location_id = Integer.parseInt(eventTable.getValueAt(row, 4).toString());
+            eventLocationCombo.setSelectedItem(location_id + ". " + locationName + ", " + city);
+
+            organizer_id = Integer.parseInt(eventTable.getValueAt(row, 7).toString());
+            String orgName = eventTable.getValueAt(row, 5).toString();
+            String orgEmail = eventTable.getValueAt(row, 6).toString();
+            eventOrgCombo.setSelectedItem(organizer_id + ". " + orgName + " (" + orgEmail + ")");
+
+            eventDurationTF.setText(eventTable.getValueAt(row, 8).toString());
+            eventDateTF.setText(eventTable.getValueAt(row, 9).toString());
+            ticketPriceTF.setText(eventTable.getValueAt(row, 10).toString());
+            eventDescriptionTF.setText(eventTable.getValueAt(row, 11).toString());
+
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+
         }
     }
     //endregion
