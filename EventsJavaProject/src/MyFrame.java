@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 
 public class MyFrame extends JFrame {
 
@@ -28,6 +27,7 @@ public class MyFrame extends JFrame {
     JPanel organizerPanel = new JPanel(new BorderLayout());
     JPanel locationPanel = new JPanel(new BorderLayout());
     JPanel eventsPanel = new JPanel(new BorderLayout());
+    JPanel sprPanel = new JPanel(new BorderLayout());
 
     //organizer elements
     JPanel orgUpPanel = new JPanel();
@@ -74,25 +74,22 @@ public class MyFrame extends JFrame {
     JPanel eventMidPanel = new JPanel();
     JPanel eventDownPanel = new JPanel();
 
+    //event labels
     JLabel eventNameL = new JLabel("Име на събитие:");
-    JLabel eventLocationL = new JLabel("Място:"); // all
-    JLabel eventOrganizerL = new JLabel("Организатор:"); // only first name
+    JLabel eventLocationL = new JLabel("Място:");
+    JLabel eventOrganizerL = new JLabel("Организатор:");
     JLabel eventDurationL = new JLabel("Продължителност:");
     JLabel eventDateL = new JLabel("Дата:");
     JLabel ticketPriceL = new JLabel("Цена на билет:");
     JLabel eventDescriptionL = new JLabel("Описание:");
 
+    //event text fields
     JTextField eventNameTF = new JTextField();
-    //JTextField eventLocationTF = new JTextField();// all
-    //JTextField eventOrganizerTF = new JTextField(); // only first name
-    JComboBox<String> eventLocationCombo = new JComboBox<>();
-    JComboBox<String> eventOrgCombo = new JComboBox<>();
+    JComboBox<String> locationCombo = new JComboBox<>();
+    JComboBox<String> orgCombo = new JComboBox<>();
     JTextField eventDurationTF = new JTextField();
-
     JTextField eventDateTF = new JTextField();
-
     JTextField ticketPriceTF = new JTextField();
-
     JTextField eventDescriptionTF = new JTextField();
 
 
@@ -105,8 +102,23 @@ public class MyFrame extends JFrame {
     JTable eventTable = new JTable();
     JScrollPane eventScrollTable = new JScrollPane(eventTable);
 
-
     //spravka elements
+
+    JPanel sprUpPanel = new JPanel();
+    JPanel sprMidPanel = new JPanel();
+    JPanel sprDownPanel = new JPanel();
+
+    JTextField sprLocationTF = new JTextField();
+    JTextField sprOrgTF = new JTextField();
+    JLabel sprLocationL = new JLabel("Търси по място:");
+    JLabel sprOrganizerL = new JLabel("Търси по организатор:");
+
+    JButton searchSprBTN = new JButton("Търси");
+    JButton refreshSprBTN = new JButton("Изчисти");
+
+    JTable sprTable = new JTable();
+    JScrollPane sprScrollTable = new JScrollPane(sprTable);
+
 
     public MyFrame() {
 
@@ -216,9 +228,9 @@ public class MyFrame extends JFrame {
         eventUpPanel.add(eventNameL);
         eventUpPanel.add(eventNameTF);
         eventUpPanel.add(eventLocationL);
-        eventUpPanel.add(eventLocationCombo);
+        eventUpPanel.add(locationCombo);
         eventUpPanel.add(eventOrganizerL);
-        eventUpPanel.add(eventOrgCombo);
+        eventUpPanel.add(orgCombo);
         eventUpPanel.add(eventDurationL);
         eventUpPanel.add(eventDurationTF);
         eventUpPanel.add(eventDateL);
@@ -259,11 +271,44 @@ public class MyFrame extends JFrame {
 
         //endregion
 
+        //region Spravka Tab
+        mainTabbedPane.addTab("Справка", sprPanel);
+
+        sprPanel.add(sprUpPanel, BorderLayout.NORTH);
+        sprPanel.add(sprMidPanel, BorderLayout.CENTER);
+        sprPanel.add(sprDownPanel, BorderLayout.SOUTH);
+        sprUpPanel.setLayout(new GridLayout(7, 2));
+        sprUpPanel.setBorder(BorderFactory.createEmptyBorder(50, 10, 0, 10));
+
+        sprUpPanel.add(sprOrganizerL);
+        sprUpPanel.add(sprOrgTF);
+        //sprUpPanel.add(orgCombo);
+        sprUpPanel.add(sprLocationL);
+        sprUpPanel.add(sprLocationTF);
+        //sprUpPanel.add(locationCombo);
+
+        sprMidPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 10));
+
+        sprMidPanel.add(searchSprBTN);
+        sprMidPanel.add(refreshSprBTN);
+
+        searchSprBTN.addActionListener(new SearchSprAction());
+        refreshSprBTN.addActionListener(new RefreshSprAction());
+
+        sprScrollTable.setPreferredSize(new Dimension(800, 150));
+        sprDownPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 50, 5));
+        sprDownPanel.add(sprScrollTable, BorderLayout.CENTER);
+
+        //endregion
         loadLocationCombo();
         loadOrganizerCombo();
+
         refreshEventTable();
+        refreshSprTable();
+
         refreshTable("organizer", orgTable);
         refreshTable("location", locationTable);
+
         this.add(mainTabbedPane);
         this.setVisible(true);
     }
@@ -324,6 +369,31 @@ public class MyFrame extends JFrame {
         }
     }
 
+    public void refreshSprTable() {
+        conn = DBConnection.getConnection();
+        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," +
+                "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
+                "FROM EVENT E " +
+                "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " +
+                "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID";
+        try {
+            state = conn.prepareStatement(sql);
+            resultSet = state.executeQuery();
+
+            sprTable.setModel(new MyTModel(resultSet));
+
+            sprTable.getColumnModel().getColumn(4).setMinWidth(0);
+            sprTable.getColumnModel().getColumn(4).setMaxWidth(0);
+            sprTable.getColumnModel().getColumn(4).setWidth(0);
+
+            sprTable.getColumnModel().getColumn(7).setMinWidth(0);
+            sprTable.getColumnModel().getColumn(7).setMaxWidth(0);
+            sprTable.getColumnModel().getColumn(7).setWidth(0);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     public void clearOrgForm() {
         organizerNameTF.setText("");
         emailTF.setText("");
@@ -343,7 +413,7 @@ public class MyFrame extends JFrame {
     }
 
     public void loadLocationCombo() {
-        eventLocationCombo.removeAllItems();
+        locationCombo.removeAllItems();
         location_id = -1;
         conn = DBConnection.getConnection();
         String sql = "select location_id,location_name,city from location";
@@ -357,7 +427,7 @@ public class MyFrame extends JFrame {
                     item = resultSet.getObject(1).toString() + ". " +
                             resultSet.getObject(2).toString() + ", " +
                             resultSet.getObject(3).toString();
-                    eventLocationCombo.addItem(item);
+                    locationCombo.addItem(item);
                 }
                 while (resultSet.next());
             }
@@ -368,7 +438,7 @@ public class MyFrame extends JFrame {
 
     public void loadOrganizerCombo() {
         organizer_id = -1;
-        eventOrgCombo.removeAllItems();
+        orgCombo.removeAllItems();
         conn = DBConnection.getConnection();
         String item = "";
         String sql = "select organizer_id,organizer_name,contact_email from organizer";
@@ -381,7 +451,7 @@ public class MyFrame extends JFrame {
                     item = resultSet.getObject(1).toString() + ". " +
                             resultSet.getObject(2).toString() + " (" +
                             resultSet.getObject(3).toString() + ")";
-                    eventOrgCombo.addItem(item);
+                    orgCombo.addItem(item);
                 }
                 while (resultSet.next());
             }
@@ -447,6 +517,7 @@ public class MyFrame extends JFrame {
                     state.execute();
                     refreshTable("organizer", orgTable);
                     loadOrganizerCombo();
+                    refreshEventTable();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -573,6 +644,7 @@ public class MyFrame extends JFrame {
                     state.execute();
                     refreshTable("location", locationTable);
                     loadLocationCombo();
+                    refreshEventTable();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -655,10 +727,10 @@ public class MyFrame extends JFrame {
             String sql = "insert into event (event_name,location_id,organizer_id,duration, event_date,ticket_price,description) values (?,?,?,?,?,?,?)";
             try {
 
-                String selectedLoc = eventLocationCombo.getSelectedItem().toString();
+                String selectedLoc = locationCombo.getSelectedItem().toString();
                 location_id = Integer.parseInt(selectedLoc.split("\\.")[0]);
 
-                String selectedOrg = eventOrgCombo.getSelectedItem().toString();
+                String selectedOrg = orgCombo.getSelectedItem().toString();
                 organizer_id = Integer.parseInt(selectedOrg.split("\\.")[0]);
 
                 state = conn.prepareStatement(sql);
@@ -703,10 +775,10 @@ public class MyFrame extends JFrame {
             if (location_id > 0) {
 
                 // взимаме ID-тата от избраните ComboBox стойности
-                String selectedLoc = eventLocationCombo.getSelectedItem().toString();
+                String selectedLoc = locationCombo.getSelectedItem().toString();
                 location_id = Integer.parseInt(selectedLoc.split("\\.")[0]);
 
-                String selectedOrg = eventOrgCombo.getSelectedItem().toString();
+                String selectedOrg = orgCombo.getSelectedItem().toString();
                 organizer_id = Integer.parseInt(selectedOrg.split("\\.")[0]);
 
 
@@ -782,12 +854,12 @@ public class MyFrame extends JFrame {
             String city = eventTable.getValueAt(row, 2).toString();
             String locationName = eventTable.getValueAt(row, 3).toString();
             location_id = Integer.parseInt(eventTable.getValueAt(row, 4).toString());
-            eventLocationCombo.setSelectedItem(location_id + ". " + locationName + ", " + city);
+            locationCombo.setSelectedItem(location_id + ". " + locationName + ", " + city);
 
             organizer_id = Integer.parseInt(eventTable.getValueAt(row, 7).toString());
             String orgName = eventTable.getValueAt(row, 5).toString();
             String orgEmail = eventTable.getValueAt(row, 6).toString();
-            eventOrgCombo.setSelectedItem(organizer_id + ". " + orgName + " (" + orgEmail + ")");
+            orgCombo.setSelectedItem(organizer_id + ". " + orgName + " (" + orgEmail + ")");
 
             eventDurationTF.setText(eventTable.getValueAt(row, 8).toString());
             eventDateTF.setText(eventTable.getValueAt(row, 9).toString());
@@ -817,5 +889,61 @@ public class MyFrame extends JFrame {
         }
     }
     //endregion
+
+    class SearchSprAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            if (!sprOrgTF.getText().isEmpty() || !sprLocationTF.getText().isEmpty()) {
+                conn = DBConnection.getConnection();
+                String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," +
+                        "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
+                        "FROM EVENT E " +
+                        "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " +
+                        "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID " +
+                        "WHERE L.CITY LIKE ?" +
+                        "AND O.ORGANIZER_NAME LIKE ?";
+                try {
+
+                    state = conn.prepareStatement(sql);
+                    if (!sprLocationTF.getText().isEmpty())
+                        state.setString(1, "%" + sprLocationTF.getText() + "%");
+                    else
+                        state.setString(1, "%");
+
+                    if (!sprOrgTF.getText().isEmpty())
+                        state.setString(2, "%" + sprOrgTF.getText() + "%");
+                    else
+                        state.setString(2,  "%");
+
+                    resultSet = state.executeQuery();
+
+                    sprTable.setModel(new MyTModel(resultSet));
+
+                    sprTable.getColumnModel().getColumn(4).setMinWidth(0);
+                    sprTable.getColumnModel().getColumn(4).setMaxWidth(0);
+                    sprTable.getColumnModel().getColumn(4).setWidth(0);
+
+                    sprTable.getColumnModel().getColumn(7).setMinWidth(0);
+                    sprTable.getColumnModel().getColumn(7).setMaxWidth(0);
+                    sprTable.getColumnModel().getColumn(7).setWidth(0);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+
+            }
+        }
+    }
+
+    class RefreshSprAction implements  ActionListener{
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            refreshSprTable();
+            sprLocationTF.setText("");
+            sprOrgTF.setText("");
+        }
+    }
 }
 
