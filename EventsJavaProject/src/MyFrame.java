@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 
 public class MyFrame extends JFrame {
 
@@ -78,8 +79,8 @@ public class MyFrame extends JFrame {
     JLabel eventNameL = new JLabel("Име на събитие:");
     JLabel eventLocationL = new JLabel("Място:");
     JLabel eventOrganizerL = new JLabel("Организатор:");
-    JLabel eventDurationL = new JLabel("Продължителност:");
-    JLabel eventDateL = new JLabel("Дата:");
+    JLabel eventDurationL = new JLabel("Продължителност (в часове):");
+    JLabel eventDateL = new JLabel("Дата (YYYY-MM-DD):");
     JLabel ticketPriceL = new JLabel("Цена на билет:");
     JLabel eventDescriptionL = new JLabel("Описание:");
 
@@ -110,8 +111,8 @@ public class MyFrame extends JFrame {
 
     JTextField sprLocationTF = new JTextField();
     JTextField sprOrgTF = new JTextField();
-    JLabel sprLocationL = new JLabel("Търси по място:");
-    JLabel sprOrganizerL = new JLabel("Търси по организатор:");
+    JLabel sprLocationL = new JLabel("Търси по град:");
+    JLabel sprOrganizerL = new JLabel("Търси по име на организатор:");
 
     JButton searchSprBTN = new JButton("Търси");
     JButton refreshSprBTN = new JButton("Изчисти");
@@ -342,10 +343,7 @@ public class MyFrame extends JFrame {
 
     public void refreshEventTable() {
         conn = DBConnection.getConnection();
-        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.CITY, L.LOCATION_NAME , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL,E.ORGANIZER_ID, E.DURATION,E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
-                "FROM EVENT E, LOCATION L, ORGANIZER O " +
-                "WHERE E.LOCATION_ID = L.LOCATION_ID " +
-                "AND E.ORGANIZER_ID = O.ORGANIZER_ID";
+        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.CITY, L.LOCATION_NAME , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL,E.ORGANIZER_ID, E.DURATION,E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " + "FROM EVENT E, LOCATION L, ORGANIZER O " + "WHERE E.LOCATION_ID = L.LOCATION_ID " + "AND E.ORGANIZER_ID = O.ORGANIZER_ID";
         try {
             state = conn.prepareStatement(sql);
             resultSet = state.executeQuery();
@@ -371,11 +369,7 @@ public class MyFrame extends JFrame {
 
     public void refreshSprTable() {
         conn = DBConnection.getConnection();
-        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," +
-                "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
-                "FROM EVENT E " +
-                "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " +
-                "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID";
+        String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," + "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " + "FROM EVENT E " + "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " + "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID";
         try {
             state = conn.prepareStatement(sql);
             resultSet = state.executeQuery();
@@ -424,12 +418,9 @@ public class MyFrame extends JFrame {
             if (resultSet.next()) {
                 location_id = Integer.parseInt(resultSet.getObject(1).toString());
                 do {
-                    item = resultSet.getObject(1).toString() + ". " +
-                            resultSet.getObject(2).toString() + ", " +
-                            resultSet.getObject(3).toString();
+                    item = resultSet.getObject(1).toString() + ". " + resultSet.getObject(2).toString() + ", " + resultSet.getObject(3).toString();
                     locationCombo.addItem(item);
-                }
-                while (resultSet.next());
+                } while (resultSet.next());
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -448,15 +439,32 @@ public class MyFrame extends JFrame {
             if (resultSet.next()) {
                 organizer_id = Integer.parseInt(resultSet.getObject(1).toString());
                 do {
-                    item = resultSet.getObject(1).toString() + ". " +
-                            resultSet.getObject(2).toString() + " (" +
-                            resultSet.getObject(3).toString() + ")";
+                    item = resultSet.getObject(1).toString() + ". " + resultSet.getObject(2).toString() + " (" + resultSet.getObject(3).toString() + ")";
                     orgCombo.addItem(item);
-                }
-                while (resultSet.next());
+                } while (resultSet.next());
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public boolean checkFields(JTextField[] fields) {
+        boolean allValid = true;
+
+        for (JTextField field : fields) {
+            if (field.getText().trim().isEmpty()) {
+                field.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                allValid = false;
+            } else {
+                field.setBorder(BorderFactory.createLineBorder(Color.GRAY,2));
+            }
+        }
+
+        return allValid;
+    }
+    public void clearFields(JTextField[] fields){
+        for (JTextField field : fields) {
+            field.setBorder(BorderFactory.createLineBorder(Color.GRAY,2));
         }
     }
 
@@ -469,6 +477,8 @@ public class MyFrame extends JFrame {
             String sql = "insert into organizer (organizer_name ,contact_email) values(?,?)";
 
             try {
+               if(!checkFields(new JTextField[]{organizerNameTF,emailTF})) return;
+
                 state = conn.prepareStatement(sql);
                 state.setString(1, organizerNameTF.getText());
                 state.setString(2, emailTF.getText());
@@ -479,6 +489,7 @@ public class MyFrame extends JFrame {
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
+            clearFields(new JTextField[]{organizerNameTF,emailTF});
         }
     }
 
@@ -497,7 +508,13 @@ public class MyFrame extends JFrame {
                 clearOrgForm();
                 organizer_id = -1;
             } catch (SQLException ex) {
-                throw new RuntimeException(ex);
+                //23503 е грешка, която се връща, когато има нарушение с външния ключ
+                if (ex.getSQLState().equals("23503")) {
+                    JOptionPane.showMessageDialog(null, "Не може да изтриете този елемент. Вече е свързан със съществуващо събитие.", "Грешка", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Възнинка неочаквана грешка", "Грешка", JOptionPane.ERROR_MESSAGE);
+                }
             }
 
         }
@@ -510,6 +527,7 @@ public class MyFrame extends JFrame {
                 String sql = "update organizer set organizer_name=?, contact_email=? where organizer_id =?";
 
                 try {
+                    if(!checkFields(new JTextField[]{organizerNameTF,emailTF})) return;
                     state = conn.prepareStatement(sql);
                     state.setString(1, organizerNameTF.getText());
                     state.setString(2, emailTF.getText());
@@ -518,6 +536,7 @@ public class MyFrame extends JFrame {
                     refreshTable("organizer", orgTable);
                     loadOrganizerCombo();
                     refreshEventTable();
+                    refreshSprTable();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -525,6 +544,7 @@ public class MyFrame extends JFrame {
 
                 organizerNameTF.setText("");
                 emailTF.setText("");
+                clearFields(new JTextField[]{organizerNameTF,emailTF});
             }
         }
     }
@@ -596,6 +616,7 @@ public class MyFrame extends JFrame {
             conn = DBConnection.getConnection();
             String sql = "insert into location (location_name,city) values(?,?)";
             try {
+                if(!checkFields(new JTextField[]{locationNameTF,cityTF})) return;
                 state = conn.prepareStatement(sql);
                 state.setString(1, locationNameTF.getText());
                 state.setString(2, cityTF.getText());
@@ -606,6 +627,7 @@ public class MyFrame extends JFrame {
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
+            clearFields(new JTextField[]{locationNameTF,cityTF});
         }
     }
 
@@ -623,7 +645,13 @@ public class MyFrame extends JFrame {
                 loadLocationCombo();
                 location_id = -1;
             } catch (SQLException ex) {
-                throw new RuntimeException(ex);
+                //23503 е грешка, която се връща, когато има нарушение с външния ключ
+                if (ex.getSQLState().equals("23503")) {
+                    JOptionPane.showMessageDialog(null, "Не може да изтриете този елемент. Вече е свързан със съществуващо събитие.", "Грешка", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Възнинка неочаквана грешка", "Грешка", JOptionPane.ERROR_MESSAGE);
+                }
             }
 
 
@@ -637,6 +665,8 @@ public class MyFrame extends JFrame {
                 String sql = "update location set location_name=?, city=? where location_id =?";
 
                 try {
+                    if(!checkFields(new JTextField[]{locationNameTF,cityTF})) return;
+
                     state = conn.prepareStatement(sql);
                     state.setString(1, locationNameTF.getText());
                     state.setString(2, cityTF.getText());
@@ -645,6 +675,7 @@ public class MyFrame extends JFrame {
                     refreshTable("location", locationTable);
                     loadLocationCombo();
                     refreshEventTable();
+                    refreshSprTable();
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -652,6 +683,7 @@ public class MyFrame extends JFrame {
 
                 locationNameTF.setText("");
                 cityTF.setText("");
+                clearFields(new JTextField[]{locationNameTF,cityTF});
             }
         }
     }
@@ -726,6 +758,7 @@ public class MyFrame extends JFrame {
             conn = DBConnection.getConnection();
             String sql = "insert into event (event_name,location_id,organizer_id,duration, event_date,ticket_price,description) values (?,?,?,?,?,?,?)";
             try {
+               if(!checkFields(new JTextField[]{eventNameTF, eventDurationTF, eventDateTF})) return;
 
                 String selectedLoc = locationCombo.getSelectedItem().toString();
                 location_id = Integer.parseInt(selectedLoc.split("\\.")[0]);
@@ -738,16 +771,20 @@ public class MyFrame extends JFrame {
                 state.setInt(2, location_id);
                 state.setInt(3, organizer_id);
                 state.setInt(4, Integer.parseInt(eventDurationTF.getText()));
-                state.setString(5, eventDateTF.getText());
-                state.setString(6, ticketPriceTF.getText());
+                LocalDate eventDate = LocalDate.parse(eventDateTF.getText());
+                state.setDate(5, java.sql.Date.valueOf(eventDate));
+                double ticketPrice = ticketPriceTF.getText().isEmpty() ? 0.00 : Double.parseDouble(ticketPriceTF.getText());
+                state.setDouble(6, ticketPrice);
                 state.setString(7, eventDescriptionTF.getText());
+
                 state.execute();
                 refreshEventTable();
+                refreshSprTable();
                 clearEventsForm();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
-
+            clearFields(new JTextField[]{eventNameTF, eventDurationTF, eventDateTF});
         }
     }
 
@@ -761,6 +798,7 @@ public class MyFrame extends JFrame {
                 state.setInt(1, event_id);
                 state.execute();
                 refreshEventTable();
+                refreshSprTable();
                 clearEventsForm();
                 event_id = -1;
             } catch (SQLException ex) {
@@ -772,7 +810,8 @@ public class MyFrame extends JFrame {
     class UpdateEventAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (location_id > 0) {
+            if (location_id > 0 && organizer_id > 0) {
+                if(!checkFields(new JTextField[]{eventNameTF, eventDurationTF, eventDateTF})) return;
 
                 // взимаме ID-тата от избраните ComboBox стойности
                 String selectedLoc = locationCombo.getSelectedItem().toString();
@@ -791,14 +830,16 @@ public class MyFrame extends JFrame {
                     state.setInt(2, location_id);
                     state.setInt(3, organizer_id);
                     state.setInt(4, Integer.parseInt(eventDurationTF.getText()));
-                    state.setString(5, eventDateTF.getText());
-                    state.setString(6, ticketPriceTF.getText());
+                    LocalDate eventDate = LocalDate.parse(eventDateTF.getText());
+                    state.setDate(5, java.sql.Date.valueOf(eventDate));
+                    double ticketPrice = ticketPriceTF.getText().isEmpty() ? 0.00 : Double.parseDouble(ticketPriceTF.getText());
+                    state.setDouble(6, ticketPrice);
                     state.setString(7, eventDescriptionTF.getText());
                     state.setInt(8, event_id);
-
-
                     state.execute();
                     refreshEventTable();
+                    refreshSprTable();
+
                 } catch (SQLException e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -809,6 +850,7 @@ public class MyFrame extends JFrame {
                 eventDateTF.setText("");
                 ticketPriceTF.setText("");
                 eventDescriptionTF.setText("");
+                clearFields(new JTextField[]{eventNameTF, eventDurationTF, eventDateTF});
             }
         }
     }
@@ -826,11 +868,7 @@ public class MyFrame extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             conn = DBConnection.getConnection();
-            String sql = "SELECT e.event_id, e.event_name, l.location_name, o.organizer_name, e.duration, e.event_date, e.ticket_price, e.description " +
-                    "FROM event e " +
-                    "JOIN location l ON e.location_id = l.location_id " +
-                    "JOIN organizer o ON e.organizer_id = o.organizer_id " +
-                    "WHERE UPPER(e.event_name) LIKE UPPER(?)";
+            String sql = "SELECT e.event_id, e.event_name, l.location_name, o.organizer_name, e.duration, e.event_date, e.ticket_price, e.description " + "FROM event e " + "JOIN location l ON e.location_id = l.location_id " + "JOIN organizer o ON e.organizer_id = o.organizer_id " + "WHERE UPPER(e.event_name) LIKE UPPER(?)";
             try {
                 state = conn.prepareStatement(sql);
                 state.setString(1, "%" + eventNameTF.getText() + "%");
@@ -897,25 +935,15 @@ public class MyFrame extends JFrame {
 
             if (!sprOrgTF.getText().isEmpty() || !sprLocationTF.getText().isEmpty()) {
                 conn = DBConnection.getConnection();
-                String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," +
-                        "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " +
-                        "FROM EVENT E " +
-                        "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " +
-                        "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID " +
-                        "WHERE L.CITY LIKE ?" +
-                        "AND O.ORGANIZER_NAME LIKE ?";
+                String sql = "SELECT E.EVENT_ID, E.EVENT_NAME , L.LOCATION_NAME, L.CITY , E.LOCATION_ID, O.ORGANIZER_NAME, O.CONTACT_EMAIL," + "E.ORGANIZER_ID, E.DURATION, E.EVENT_DATE , E.TICKET_PRICE , E.DESCRIPTION " + "FROM EVENT E " + "JOIN LOCATION L ON E.LOCATION_ID = L.LOCATION_ID " + "JOIN ORGANIZER O ON E.ORGANIZER_ID = O.ORGANIZER_ID " + "WHERE L.CITY LIKE ?" + "AND O.ORGANIZER_NAME LIKE ?";
                 try {
 
                     state = conn.prepareStatement(sql);
-                    if (!sprLocationTF.getText().isEmpty())
-                        state.setString(1, "%" + sprLocationTF.getText() + "%");
-                    else
-                        state.setString(1, "%");
+                    if (!sprLocationTF.getText().isEmpty()) state.setString(1, "%" + sprLocationTF.getText() + "%");
+                    else state.setString(1, "%");
 
-                    if (!sprOrgTF.getText().isEmpty())
-                        state.setString(2, "%" + sprOrgTF.getText() + "%");
-                    else
-                        state.setString(2,  "%");
+                    if (!sprOrgTF.getText().isEmpty()) state.setString(2, "%" + sprOrgTF.getText() + "%");
+                    else state.setString(2, "%");
 
                     resultSet = state.executeQuery();
 
@@ -936,7 +964,7 @@ public class MyFrame extends JFrame {
         }
     }
 
-    class RefreshSprAction implements  ActionListener{
+    class RefreshSprAction implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -946,4 +974,3 @@ public class MyFrame extends JFrame {
         }
     }
 }
-
